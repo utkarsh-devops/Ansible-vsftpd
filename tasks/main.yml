@@ -1,0 +1,75 @@
+---
+# tasks file for ansible-vsftpd
+- name: install vsftpd
+  apt: name={{ item }} state=latest cache_valid_time=3600 update_cache=yes
+  with_items:
+    - vsftpd
+    - libpam-pwdfile
+
+- name: create directory for user configuration
+  file:
+    path: "{{ vsftpd_user_config_dir }}"
+    owner: root
+    group: root
+    state: directory
+
+- name: create directory for key local_root from vsftpd.conf
+  file:
+    path: "{{ vsftpd_local_root }}"
+    owner: root
+    group: root
+    state: directory
+
+- name: copy file for PAM service
+  template: src=vsftpd.pam.j2 dest=/etc/pam.d/vsftpd mode=644 backup=yes
+
+- name: copy script the vsftpd-user
+  template: src=vsftpd-user.j2 dest=/sbin/vsftpd-user mode=755
+
+- name: add ftp users
+  command: vsftpd-user add '{{ item.username }}' '{{ item.password }}' /etc/vsftpd
+  args:
+    creates: "{{ vsftpd_local_root }}/{{ item.username }}"
+  with_items: "{{ vsftpd_users | default([], True) }}"
+
+- name: update ftp users
+  command: vsftpd-user upgrade '{{ item.username }}' '{{ item.password }}' /etc/vsftpd
+  with_items: "{{ vsftpd_users | default([], True) }}"
+
+- name: make sure sure bind paths exist
+  file:
+   owner: '{{ item.1.owner | default("ftp") }}'
+   group: '{{ item.1.group | default("ftp") }}'
+   mode: 0755
+   state: directory
+   path: "{{ item.1.path | realpath }}"
+  #debug: msg="Path {{ item.1.path | realpath }} to {{ vsftpd_local_root }}/{{ item.0.username }}/{{ item.1.path | realpath | basename }}"
+  with_subelements:
+    - "{{ vsftpd_users }}"
+    - bindpath
+    - flags:
+      skip_missing: true
+  tags:
+    - bind        
+
+- name: bind paths
+  mount:
+   opts: bind
+   fstype: none
+   state: mounted
+   name: "{{ vsftpd_local_root }}/{{ item.0.username }}/{{ item.1.path | realpath | basename }}"
+   src: "{{ item.1.path }}"
+  #debug: msg="Path {{ item.1.path | realpath }} to {{ vsftpd_local_root }}/{{ item.0.username }}/{{ item.1.path | realpath | basename }}"
+  with_subelements:
+    - "{{ vsftpd_users }}"
+    - bindpath
+    - flags:
+      skip_missing: true
+  tags:
+    - bind   
+
+# will be create backup file if already exist
+- name: copy config file of the vsftpd
+  template: src=vsftpd.conf.j2 dest=/etc/vsftpd.conf mode=644 backup=yes
+  notify:
+    - restart vsftpd

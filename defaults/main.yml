@@ -1,0 +1,43 @@
+---
+### vsftpd.conf settings
+
+vsftpd_ftpd_banner: Welcome to FTP
+vsftpd_max_per_ip: 100
+vsftpd_pasv_min_port: 10000
+vsftpd_pasv_max_port: 14000
+vsftpd_xferlog_enable: 'YES'
+vsftpd_local_root: /srv/ftp
+vsftpd_ssl_enable: 'YES'
+vsftpd_tls_only: 'NO'
+vsftpd_user_config_dir: /etc/vsftpd.d
+vsftpd_rsa_cert_file: /etc/ssl/certs/ssl-cert-snakeoil.pem
+vsftpd_rsa_private_key_file: /etc/ssl/private/ssl-cert-snakeoil.key
+vsftpd_write_enable: 'YES'
+vsftpd_pasv_enable: 'YES'
+vsftpd_chmod_enable: 'YES'
+vsftpd_file_open_mode: '0666'
+vsftpd_local_umask: '0022'
+vsftpd_utf8_filesystem: 'YES'
+vsftpd_force_dot_files: 'YES'
+vsftpd_users: []
+xferlog_std_format: 'YES'
+log_ftp_protocol: 'YES'
+async_abor_enable: 'YES'
+guest_username: 'www-data'
+nopriv_user: 'www-data'
+
+# Optionally enable chown on uploaded files. WARNING! 
+# continue only if you are aware of the security implications!
+vsftpd_chown_uploads: 'YES'
+vsftpd_chown_username: 'www-data'
+
+### end vsftpd.conf settings
+
+vsftpd_pwd_file: /etc/vsftpd
+
+vsftpd_test_user_is_enable: no
+vsftpd_test_user: nidr0x
+vsftpd_test_user_password: 42
+
+vsftpd_pasv_address: '{{ ansible_eth0.ipv4.address }}'
+vsftpd_pasv_addr_resolve: 'YES'
